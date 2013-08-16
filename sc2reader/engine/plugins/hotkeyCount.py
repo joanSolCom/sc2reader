@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, print_function, unicode_literals, division
+from __future__ import absolute_import, print_function, unicode_literals,division
 #testing
 import pprint
 from collections import defaultdict
@@ -19,14 +19,10 @@ class HotkeyCount(object):
 	"""
 
 	name = "HotkeyCount"
+	debug = False
 
 	def handleInitGame(self,event,replay):
-		length = str(replay.length).split(".")
-
-		if int(length[1]) > 0:
-			nminutes = int(length[0]) + 1
-		else:
-			nminutes = int(length[0])	
+		nminutes = int(ceil(replay.game_length.seconds / 60))
 
 		for player in replay.players:
 			player.num_hotkeys_used = defaultdict(int)
@@ -42,19 +38,28 @@ class HotkeyCount(object):
 
 	def handleGetFromHotkeyEvent(self,event,replay):
 
-		minute = int(ceil(float(event.second)/60))
-
-		if event.control_group not in replay.players[event.pid].hotkeys_used[minute]:
+		minute = int(ceil(event.second/60))
+		
+		if self.debug:
+			print("Real Minute-> "+ str(event.second/60))
+			print("Total Length-> "+ str(replay.game_length.seconds / 60))
+			print("Normalized Length-> " + str(int(ceil(replay.game_length.seconds / 60))))
+			print("Array Positions-> " + str(len(event.player.num_hotkeys_used)))
+			print("Key-> " + str(int(ceil(event.second/60))))
+		
+		
+		if event.control_group not in event.player.hotkeys_used[minute]:
 			
-			replay.players[event.pid].num_hotkeys_used[minute] = replay.players[event.pid].num_hotkeys_used[minute] + 1
-			replay.players[event.pid].hotkeys_used[minute].append(event.control_group)
+			event.player.num_hotkeys_used[minute] = event.player.num_hotkeys_used[minute] + 1
+			event.player.hotkeys_used[minute].append(event.control_group)
 			
 	
 	#for testing purposes only!
 	def handleEndGame(self,event,replay):
+		if self.debug:
+			for player in replay.players:
+				print(str(player.pid))
+				pprint.pprint(player.num_hotkeys_used)
+				print("\n\n")
 		
-		for player in replay.players:
-			print(str(player.pid))
-			pprint.pprint(player.num_hotkeys_used)
-			print("\n\n")
 		
