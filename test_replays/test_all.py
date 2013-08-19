@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals,division
 
 import datetime
 import json
@@ -286,7 +286,7 @@ class TestReplays(unittest.TestCase):
         self.assertEqual(controllers, [(0, 3), (1, 1), (2, 1), (15, 4)])
 
     def test_engine_plugins(self):
-        from sc2reader.engine.plugins import ContextLoader, APMTracker, SelectionTracker, HotkeyCount
+        from sc2reader.engine.plugins import ContextLoader, APMTracker, SelectionTracker
 
         replay = sc2reader.load_replay(
             "test_replays/2.0.5.25092/cn1.SC2Replay",
@@ -294,13 +294,40 @@ class TestReplays(unittest.TestCase):
                 ContextLoader(),
                 APMTracker(),
                 SelectionTracker(),
-                HotkeyCount(),
             ])
         )
 
         code, details = replay.plugins['ContextLoader']
         self.assertEqual(code, 0)
         self.assertEqual(details, dict())
+
+    def test_hotkey_plugin(self):
+	from sc2reader.engine.plugins import ContextLoader,HotkeyCount
+	import os
+	from math import ceil
+	
+	root = "test_replays/hotkey_replays"
+	
+	for path in os.listdir(root):
+		path = os.path.join(root,path)
+		print path
+		replay = sc2reader.load_replay(
+		path,
+		engine=sc2reader.engine.GameEngine(plugins=[
+			ContextLoader(),
+			HotkeyCount()
+		])
+		)
+
+		code, details = replay.plugins['HotkeyCount']
+		self.assertEqual(code, 0)
+		self.assertEqual(details, dict())
+		
+		length = int(ceil(replay.game_length.seconds / 60)) + 1
+
+		self.assertEqual(len(replay.players[0].num_hotkeys_used),len(range(1,length)))
+		self.assertEqual(len(replay.players[0].hotkeys_used),len(range(1,length)))
+
 
     def test_factory_plugins(self):
         from sc2reader.factories.plugins.replay import APMTracker, SelectionTracker, toJSON
