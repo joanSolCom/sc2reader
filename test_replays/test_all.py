@@ -302,32 +302,67 @@ class TestReplays(unittest.TestCase):
         self.assertEqual(details, dict())
 
     def test_hotkey_plugin(self):
-	from sc2reader.engine.plugins import ContextLoader,HotkeyCount
-	import os
-	from math import ceil
-	
-	root = "test_replays/hotkey_replays"
-	
-	for path in os.listdir(root):
-		path = os.path.join(root,path)
-		print path
-		replay = sc2reader.load_replay(
-		path,
-		engine=sc2reader.engine.GameEngine(plugins=[
-			ContextLoader(),
-			HotkeyCount()
-		])
-		)
+        from sc2reader.engine.plugins import ContextLoader,HotkeyCount
+        import os
+        from math import ceil
 
-		code, details = replay.plugins['HotkeyCount']
-		self.assertEqual(code, 0)
-		self.assertEqual(details, dict())
-		
-		length = int(ceil(replay.game_length.seconds / 60)) + 1
+        root = "test_replays/hotkey_replays"
 
-		self.assertEqual(len(replay.players[0].num_hotkeys_used),len(range(1,length)))
-		self.assertEqual(len(replay.players[0].hotkeys_used),len(range(1,length)))
+        #we test the plugin with several different kinds of replays so we see it doesn't crash
+        for path in os.listdir(root):
+            path = os.path.join(root,path)
+            replay = sc2reader.load_replay(path,engine=sc2reader.engine.GameEngine(plugins=[ContextLoader(),HotkeyCount()]))
 
+            code, details = replay.plugins['HotkeyCount']
+            self.assertEqual(code, 0)
+            self.assertEqual(details, dict())
+
+            length = int(ceil(replay.game_length.seconds / 60)) + 1
+
+            self.assertEqual(len(replay.players[0].num_hotkeys_used),len(range(1,length)))
+            self.assertEqual(len(replay.players[0].hotkeys_used),len(range(1,length)))
+            
+        #numerical output check from a normal game I played on the Korean server
+        replay = sc2reader.load_replay(
+            "test_replays/hotkey_replays/1v1.SC2Replay",
+            engine=sc2reader.engine.GameEngine(plugins=[
+                ContextLoader(),
+                HotkeyCount()
+            ])
+        )
+
+        code, details = replay.plugins['HotkeyCount']
+        self.assertEqual(code, 0)
+        self.assertEqual(details, dict())
+        self.assertEqual(replay.players[1].hotkeys_used[1],[5])
+        self.assertEqual(replay.players[1].num_hotkeys_used[1],1)
+        self.assertEqual(replay.players[0].hotkeys_used[1],[])
+        self.assertEqual(replay.players[0].num_hotkeys_used[1],0)
+        self.assertEqual(replay.players[1].hotkeys_used[3],[5,1])
+        self.assertEqual(replay.players[1].num_hotkeys_used[3],2)
+        
+        #numerical output check from a game I played in the EU server to debug
+        replay = sc2reader.load_replay(
+            "test_replays/hotkey_replays/protoss.SC2Replay",
+            engine=sc2reader.engine.GameEngine(plugins=[
+                ContextLoader(),
+                HotkeyCount()
+            ])
+        )
+
+        code, details = replay.plugins['HotkeyCount']
+        self.assertEqual(code, 0)
+        self.assertEqual(details, dict())
+        self.assertEqual(replay.players[1].hotkeys_used[1],[1,2,3])
+        self.assertEqual(replay.players[1].num_hotkeys_used[1],3)
+        self.assertEqual(replay.players[1].hotkeys_used[4],[])
+        self.assertEqual(replay.players[1].num_hotkeys_used[4],0)
+        self.assertEqual(replay.players[1].hotkeys_used[7],[1,2,3,4,6])
+        self.assertEqual(replay.players[1].num_hotkeys_used[7],5)
+        self.assertEqual(replay.players[1].hotkeys_used[17],[1,2,6])
+        self.assertEqual(replay.players[1].num_hotkeys_used[17],3)
+        self.assertEqual(replay.players[1].hotkeys_used[20],[])
+        self.assertEqual(replay.players[1].num_hotkeys_used[20],0)
 
     def test_factory_plugins(self):
         from sc2reader.factories.plugins.replay import APMTracker, SelectionTracker, toJSON
